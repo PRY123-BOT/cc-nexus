@@ -1,8 +1,8 @@
 <div align="center">
 
-# CC-Nexus v2.0 (`cc-nexus`)
+# CC-Nexus v3.0 (`cc-nexus`)
 
-**融合 DeepSeek Super-Agent 架构、Claude Code 与 OpenAI Codex 的工业级自主智能体控制平面**
+**面向小白、办公人士与开发者的全场景超级智能体桌面工作站 (DeepSeek Super-Agent × Claude Code × OpenAI Codex)**
 
 [![CI & Security Gate](https://img.shields.io/badge/CI-Passing-10b981?style=flat-square&logo=githubactions&logoColor=white)](./.github/workflows/ci.yml)
 [![Super-Agent Architecture](https://img.shields.io/badge/Architecture-DeepSeek_Super--Agent-fafafa?style=flat-square)](./src/core/super-agent.ts)

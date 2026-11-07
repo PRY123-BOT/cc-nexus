@@ -1,8 +1,8 @@
 <div align="center">
 
-# CC-Nexus v2.0 (`cc-nexus`)
+# CC-Nexus v3.0 (`cc-nexus`)
 
-**Autonomous Super-Agent Control Plane, Git Worktree Orchestrator & Adversarial Security Gate for Anthropic Claude Code and OpenAI Codex**
+**Universal Super-Agent Desktop Workstation (Beginner, Office & Developer Modes) for Anthropic Claude Code and OpenAI Codex**
 
 [![CI & Security Gate](https://img.shields.io/badge/CI-Passing-10b981?style=flat-square&logo=githubactions&logoColor=white)](./.github/workflows/ci.yml)
 [![Super-Agent Architecture](https://img.shields.io/badge/Architecture-DeepSeek_Super--Agent-fafafa?style=flat-square)](./src/core/super-agent.ts)
