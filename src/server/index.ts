@@ -1,8 +1,21 @@
+import type { EventSourceChannel } from "../core/types.ts";
 import { SwarmOrchestrator } from "../core/orchestrator.ts";
 import { renderStudioHtml } from "../ui/studio.ts";
 
 export function createNexusServer(port = Number(process.env.PORT || 4789)) {
   const orchestrator = new SwarmOrchestrator();
+  const wsClients = new Set<{ send: (data: string) => void }>();
+
+  orchestrator.onEvent((evt) => {
+    const payload = JSON.stringify(evt);
+    for (const client of wsClients) {
+      try {
+        client.send(payload);
+      } catch {
+        wsClients.delete(client);
+      }
+    }
+  });
 
   const server = Bun.serve<{ clientId: string }>({
     port,
@@ -40,8 +53,10 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
         return Response.json(
           {
             service: "cc-nexus",
-            version: "1.0.0",
+            version: "2.0.0",
+            architecture: "DeepSeek Super-Agent (Router/Worker) + Claude Code + OpenAI Codex",
             providers: orchestrator.adapter.getProviderStatus(),
+            superAgent: orchestrator.superAgent.getSnapshot(),
             tasks: orchestrator.listTasks(),
             worktrees: orchestrator.worktrees.listSandboxes(),
             mcp: orchestrator.mcpHub.listServers(),
@@ -63,6 +78,33 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
           body.prompt || "Implement feature with Claude + Codex verification"
         );
         return Response.json(task, { status: 201, headers: corsHeaders });
+      }
+
+      if (url.pathname === "/api/events/ingest" && req.method === "POST") {
+        const body = (await req.json()) as {
+          channel?: EventSourceChannel;
+          sender?: string;
+          subject?: string;
+          payload?: string;
+        };
+        const result = await orchestrator.ingestChannelEvent({
+          channel: body.channel || "github-webhook",
+          sender: body.sender || "external@webhook",
+          subject: body.subject || "Incoming Event",
+          payload: body.payload || "",
+        });
+        return Response.json(result, { status: 201, headers: corsHeaders });
+      }
+
+      if (url.pathname === "/api/watchdog/heal" && req.method === "POST") {
+        const body = (await req.json().catch(() => ({}))) as {
+          workerId?: string;
+        };
+        const incident = orchestrator.superAgent.simulateWatchdogLoopAndHeal(
+          body.workerId
+        );
+        orchestrator.emit("watchdog:healed", incident);
+        return Response.json(incident, { headers: corsHeaders });
       }
 
       if (url.pathname === "/api/security/audit" && req.method === "POST") {
@@ -116,13 +158,17 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
     },
     websocket: {
       open(ws) {
+        wsClients.add(ws);
         ws.send(
           JSON.stringify({
             type: "welcome",
-            service: "cc-nexus-sidecar",
+            service: "cc-nexus-sidecar-v2",
             timestamp: new Date().toISOString(),
           })
         );
+      },
+      close(ws) {
+        wsClients.delete(ws);
       },
       message(ws, message) {
         ws.send(
@@ -143,6 +189,6 @@ if (import.meta.main) {
   const port = Number(process.env.PORT || 4789);
   const { server } = createNexusServer(port);
   console.log(
-    `\n🚀 CC-Nexus Studio Sidecar listening on http://localhost:${server.port}`
+    `\n[CC-NEXUS v2.0] Super-Agent Control Plane listening on http://localhost:${server.port}`
   );
 }

@@ -1,16 +1,16 @@
 {
   "name": "cc-nexus",
-  "version": "1.0.0",
-  "description": "Local-First Multi-Agent Workspace, Git Worktree Orchestrator & Cross-Model Security Gate for Claude Code and OpenAI Codex",
+  "version": "2.0.0",
+  "description": "Autonomous Super-Agent Control Plane (Router/Worker), Git Worktree Orchestrator & Cross-Model Security Gate for Claude Code and OpenAI Codex",
   "keywords": [
     "claude-code",
-    "anthropic",
     "openai-codex",
+    "deepseek-super-agent",
+    "dsh-superagent",
     "multi-agent",
     "git-worktree",
     "mcp",
-    "model-context-protocol",
-    "ai-coding",
+    "attention-inbox",
     "security-gate",
     "developer-tools"
   ],

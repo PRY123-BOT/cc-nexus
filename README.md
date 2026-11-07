@@ -1,14 +1,15 @@
 <div align="center">
 
-# ⚡ CC-Nexus (`cc-nexus`)
+# CC-Nexus v2.0 (`cc-nexus`)
 
-**Local-First Multi-Agent Workspace, Git Worktree Orchestrator & Cross-Model Security Gate for Anthropic Claude Code and OpenAI Codex**
+**Autonomous Super-Agent Control Plane, Git Worktree Orchestrator & Adversarial Security Gate for Anthropic Claude Code and OpenAI Codex**
 
-[![CI & Security Gate](https://img.shields.io/badge/CI-Passing-10b981?style=for-the-badge&logo=githubactions&logoColor=white)](./.github/workflows/ci.yml)
-[![Claude Code 4.5](https://img.shields.io/badge/Anthropic-Claude_Code-f59e0b?style=for-the-badge&logo=anthropic&logoColor=white)](https://docs.anthropic.com)
-[![OpenAI Codex Security](https://img.shields.io/badge/OpenAI-Codex_Security-10b981?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com/form/codex-for-oss/)
-[![Runtime Bun](https://img.shields.io/badge/Bun-%3E%3D1.1-6366f1?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
+[![CI & Security Gate](https://img.shields.io/badge/CI-Passing-10b981?style=flat-square&logo=githubactions&logoColor=white)](./.github/workflows/ci.yml)
+[![Super-Agent Architecture](https://img.shields.io/badge/Architecture-DeepSeek_Super--Agent-fafafa?style=flat-square)](./src/core/super-agent.ts)
+[![Claude Code 4.5](https://img.shields.io/badge/Anthropic-Claude_Code-d97706?style=flat-square)](https://docs.anthropic.com)
+[![OpenAI Codex Security](https://img.shields.io/badge/OpenAI-Codex_Security-10b981?style=flat-square)](https://openai.com/form/codex-for-oss/)
+[![Runtime Bun](https://img.shields.io/badge/Bun-%3E%3D1.1-71717a?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
+[![License: MIT](https://img.shields.io/badge/License-MIT-71717a.svg?style=flat-square)](./LICENSE)
 
 [**English**](./README.md) | [**简体中文**](./README.zh-CN.md) | [**OpenAI Codex for OSS Application Guide**](./docs/CODEX_FOR_OSS_APPLICATION.md) | [**Security Policy**](./SECURITY.md)
 
@@ -16,153 +17,95 @@
 
 ---
 
-## 🖼️ Live Studio Preview
+## Industrial Swiss-Grid Control Plane (v2.0)
 
-![CC-Nexus Studio Dashboard](./docs/assets/studio-preview.png)
-
----
-
-## 🌟 Why CC-Nexus?
-
-Autonomous coding agents like **Anthropic Claude Code** and **OpenAI Codex** are transforming software engineering—but running multiple terminal agents in parallel introduces three critical bottlenecks:
-
-1. **Workspace Collisions**: Multiple agents editing the same working tree overwrite each other's uncommitted changes.
-2. **Single-Model Blind Spots & Security Risks**: When the same model writes and self-reviews a patch, subtle command injections (`execSync`), path traversals, or accidental secret leaks (`sk-ant-*`, `sk-proj-*`) can slip into production or CI.
-3. **Context Drift Across Ecosystems**: Maintaining separate memory files (`CLAUDE.md` for Claude Code and `AGENTS.md` for OpenAI Codex) manually leads to stale instructions and wasted prompt tokens.
-
-**`cc-nexus`** solves all three in a **100% clean-room, local-first TypeScript & Bun architecture**:
-
-- 🌿 **Git Worktree Sandbox Isolation**: Every autonomous task automatically receives an isolated branch and worktree directory (`.cc-nexus/worktrees/<task-id>`).
-- 🛡️ **Claude × OpenAI Codex Adversarial Security Gate**: Patches authored by `claude-architect` + `claude-coder` are audited by `codex-auditor` and a deterministic 9-rule static AST/regex security engine before merge, with native **SARIF 2.1.0** export.
-- 🧠 **Auto-Dream Memory Consolidation**: Inspired by biological sleep consolidation, CC-Nexus deduplicates session learnings, compresses context tokens by **68%**, and writes synchronized `CLAUDE.md` and `AGENTS.md` files.
-- 🔌 **MCP Registry & FinOps Telemetry**: Manage `~/.claude.json` / `.mcp.json` servers visually while tracking real-time token consumption, prompt cache savings, and remote webhook approvals.
+![CC-Nexus v2.0 Super-Agent Workbench](./docs/assets/studio-preview.png)
 
 ---
 
-## 📊 Ecosystem Benchmark
+## Why CC-Nexus v2.0?
 
-| Feature / Capability | `cc-nexus` (This Repo) | `NanmiCoder/cc-haha` | `winfunc/opcode` | `smtg-ai/claude-squad` | `sahithvibudhi/vibe-tree` |
+As autonomous coding models (**Anthropic Claude Code** and **OpenAI Codex**) grow more capable, the primary bottleneck in software engineering shifts from *model intelligence* to the **Human Attention Budget**—a developer can realistically track only **3 to 5 concurrent agent sessions** before suffering cognitive overload.
+
+Inspired by the **DeepSeek Harness Super-Agent (`dsh-superagent`)** architecture and engineered with an industrial monochrome Swiss-Grid interface, **CC-Nexus v2.0** solves three fundamental problems:
+
+1. **Human Attention Bottleneck (`Attention Inbox` & `Router/Worker Decoupling`)**:
+   - **Always-On Router (`DIRECT_BASH = FALSE`)**: A persistent front-door orchestrator that classifies multi-channel intent and dispatches tickets without ever running Bash or writing code itself.
+   - **Deterministic Pre-LLM Event Filter**: Filters out 60%+ of noisy webhook pings, bot notifications, and trivial IM replies (`"ok"`, `"收到"`) *before* waking up an LLM.
+   - **Silent Background Workers + Attention Inbox**: Isolated workers execute in parallel `.cc-nexus/worktrees/*` sandboxes. Patches that pass the OpenAI Codex Security Gate auto-merge silently (`0 Attention Slots`). Only blocked patches or critical escalations surface in the **Human Attention Inbox**.
+2. **Single-Model Blind Spots (`Claude × OpenAI Codex Adversarial Gate`)**:
+   - Every diff authored by `claude-coder` is audited by `codex-auditor` plus a 9-rule static AST/regex security engine (`CCN-SEC-001`..`009`) with native **GitHub SARIF 2.1.0** export.
+3. **Watchdog Self-Healing & Dual-Ecosystem Memory (`Auto-Dream`)**:
+   - **Watchdog Daemon**: Detects cyclic tool loops and stalled worker heartbeats, rewinding worktree state and recovering autonomously.
+   - **Auto-Dream Engine**: Compresses session learnings by **68%** and synchronizes both `CLAUDE.md` (Anthropic standard) and `AGENTS.md` (OpenAI Codex standard).
+
+---
+
+## Ecosystem Benchmark
+
+| Capability | `cc-nexus v2.0` | `dsh-superagent` | `NanmiCoder/cc-haha` | `winfunc/opcode` | `smtg-ai/claude-squad` |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **100% Clean-Room Original Source** | ✅ Yes (MIT) | ⚠️ Legacy roots | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Claude Code × OpenAI Codex Dual Engine** | ✅ Native | ❌ Claude-first | ❌ Claude-only | ❌ Single CLI | ⚠️ Manual |
-| **Pre-Merge Adversarial Security Gate (SARIF)** | ✅ Built-in (9 Rules) | ❌ No | ❌ No | ❌ No | ❌ No |
-| **Git Worktree Parallel Branch Isolation** | ✅ Automatic | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes |
-| **Auto-Dream `CLAUDE.md` ↔ `AGENTS.md` Sync** | ✅ Dual-Format | ⚠️ Single-Format | ❌ No | ❌ No | ❌ No |
-| **Zero-Key Deterministic Simulation Mode** | ✅ Instant Replay | ❌ Requires Keys | ❌ Requires CLI | ❌ Requires CLI | ❌ Requires CLI |
+| **Router / Worker Attention Decoupling** | ✅ Native (`Max 5 Slots`) | ✅ Reference Prototype | ❌ Session-bound | ❌ Session-bound | ❌ Terminal list |
+| **Deterministic Pre-LLM Noise Filter** | ✅ Built-in | ✅ Yes | ❌ No | ❌ No | ❌ No |
+| **Claude Code × OpenAI Codex Dual Engine** | ✅ Adversarial Gate | ❌ Single-provider | ❌ Claude-first | ❌ Claude-only | ❌ Single CLI |
+| **Pre-Merge SARIF 2.1.0 Security Gate** | ✅ 9 Built-in Rules | ❌ No | ❌ No | ❌ No | ❌ No |
+| **Watchdog Loop Detection & Auto-Heal** | ✅ Automatic | ✅ Yes | ❌ No | ❌ No | ❌ No |
+| **Auto-Dream `CLAUDE.md` ↔ `AGENTS.md` Sync** | ✅ Dual-Format | ❌ No | ⚠️ Single-Format | ❌ No | ❌ No |
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 flowchart LR
-    subgraph UI["Clients & Control Planes"]
-        Studio["Web Studio UI (:4789)"]
-        CLI["cc-nexus CLI"]
-        Webhook["Remote Mobile / IM Approval"]
+    subgraph Events["Multi-Channel Event Stream"]
+        GH["GitHub Webhook"]
+        IM["Feishu / Slack IM"]
+        CMD["⌘K Command Palette"]
     end
 
-    subgraph Engine["CC-Nexus Sidecar (Bun Runtime)"]
-        Orch["Swarm DAG Orchestrator"]
-        WT["Git Worktree Manager"]
-        Gate["Codex Security Gate (SARIF 2.1.0)"]
-        Dream["Auto-Dream Memory Engine"]
-        MCP["MCP Hub & FinOps Tracker"]
+    subgraph SuperAgent["DeepSeek Super-Agent Layer (src/core/super-agent.ts)"]
+        Filter["Deterministic Pre-Filter\n(Drops 60%+ Noise at 0 Token Cost)"]
+        Router["Always-On Router\n(Invariant: DIRECT_BASH = FALSE)"]
+        Watchdog["Watchdog Daemon\n(Loop Detection & Auto-Heal)"]
+        Inbox["Human Attention Inbox\n(Max 5 Cognitive Slots)"]
     end
 
-    subgraph Models["Dual-Engine Model Providers"]
-        Claude["Anthropic Claude Code\n(Architect & Coder)"]
-        Codex["OpenAI Codex / Responses API\n(Adversarial Security Auditor)"]
+    subgraph Workers["Isolated Git Worktree Workers"]
+        W1["worker-01 (Claude Coder + Codex Gate)"]
+        W2["worker-02 (Claude Coder + Codex Gate)"]
     end
 
-    UI <--> Engine
-    Orch --> WT
-    Orch --> Claude
-    Orch --> Codex
-    Codex --> Gate
-    Dream -->|"Syncs"| Docs["CLAUDE.md & AGENTS.md"]
+    Events --> Filter
+    Filter -->|"Valid Signal"| Router
+    Router -->|"Spawn Ticket"| Workers
+    Watchdog -.->|"Heartbeat Audit"| Workers
+    Workers -->|"CODEX PASS (0 Slots)"| Merge["Silent Auto-Merge"]
+    Workers -->|"CODEX BLOCK (1 Slot)"| Inbox
 ```
 
 ---
 
-## 🚀 Quickstart (Under 30 Seconds)
-
-### 1. Clone & Verify Environment
+## Quickstart
 
 ```bash
-git clone https://github.com/PRY123-BOT/cc-nexus.git
-cd cc-nexus
-
-# Verify Bun runtime, providers, MCP servers, and Security Gate rules
+# 1. Verify runtime, providers, MCP servers, and Security Gate
 bun run doctor
-```
 
-### 2. Launch the Visual Web Studio
-
-```bash
-bun run start
-# Open http://localhost:4789 in your browser
-```
-
-> **Note**: `cc-nexus` works out of the box with zero configuration using its deterministic simulation engine. To enable live API calls, export `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`.
-
-### 3. CLI Power Commands
-
-```bash
-# Run a 3-stage multi-agent swarm task (Claude Architect -> Claude Coder -> Codex Auditor)
-bun run src/cli/index.ts run "Implement strict OAuth2 PKCE verifier with unit tests"
-
-# Audit a unified diff or file with the Dual-Engine Security Gate (supports --json and --sarif)
-bun run src/cli/index.ts audit --sample
-bun run src/cli/index.ts audit --sample --sarif
-
-# Consolidate agent session memory into synchronized CLAUDE.md and AGENTS.md
-bun run src/cli/index.ts dream --write
-
-# Manage isolated Git worktree sandboxes
-bun run src/cli/index.ts worktree list
-bun run src/cli/index.ts worktree create feat-rate-limiter
-```
-
-### 4. Run Automated Tests
-
-```bash
+# 2. Run the 44-assertion automated test suite
 bun test
+
+# 3. Start the v2.0 Industrial Workbench on http://localhost:4789
+bun run start
+
+# 4. Run CLI commands
+bun run src/cli/index.ts run "Implement strict OAuth2 PKCE verifier"
+bun run src/cli/index.ts audit --sample --sarif
+bun run src/cli/index.ts dream --write
 ```
 
 ---
 
-## 🛡️ Security Gate Rules (`CCN-SEC-001` – `CCN-SEC-009`)
+## License
 
-| Rule ID | Severity | Category | Description |
-| :--- | :--- | :--- | :--- |
-| `CCN-SEC-001` | **CRITICAL** | `secret-leak` | Hardcoded Anthropic API Key (`sk-ant-*`) in added diff lines |
-| `CCN-SEC-002` | **CRITICAL** | `secret-leak` | Hardcoded OpenAI / Codex API Key (`sk-proj-*`, `sk-svcacct-*`) |
-| `CCN-SEC-003` | **CRITICAL** | `secret-leak` | AWS Access Key ID (`AKIA*`) or PEM private key header exposure |
-| `CCN-SEC-004` | **CRITICAL** | `destructive-command` | Destructive root deletion (`rm -rf /`), disk wipe, or force push to `main` |
-| `CCN-SEC-005` | **HIGH** | `supply-chain` | Remote script pipe execution (`curl ... \| bash`) |
-| `CCN-SEC-006` | **HIGH** | `code-injection` | Unsanitized template interpolation inside `exec` / `execSync` / `spawnSync` |
-| `CCN-SEC-007` | **HIGH** | `sql-injection` | Raw SQL query string interpolation (`SELECT/UPDATE/DELETE ... ${...}`) |
-| `CCN-SEC-008` | **MEDIUM** | `unsafe-eval` | Dynamic code execution via `eval()` or `new Function()` |
-| `CCN-SEC-009` | **MEDIUM** | `path-traversal` | Unvalidated multi-level directory traversal (`../../`) |
-
----
-
-## 🔌 REST & WebSocket API Reference
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/status` | Full workspace snapshot (tasks, worktrees, MCP servers, FinOps, Auto-Dream) |
-| `GET` | `/api/tasks` | List all multi-agent swarm tasks and step logs |
-| `POST` | `/api/tasks` | Trigger a new Claude × Codex swarm pipeline (`{ title, prompt }`) |
-| `POST` | `/api/security/audit` | Audit a diff/command/file (`{ content, targetType, sarif }`) |
-| `POST` | `/api/memory/dream` | Run an Auto-Dream consolidation pass (`CLAUDE.md` + `AGENTS.md`) |
-| `POST` | `/api/mcp/toggle` | Enable/disable an MCP server and export `.mcp.json` |
-| `POST` | `/api/remote/approve` | Approve or reject a security-gated worktree branch (`{ taskId, decision }`) |
-| `WS` | `/ws` | Real-time event stream for active swarm tasks and approvals |
-
----
-
-## 📄 License
-
-Released under the [MIT License](./LICENSE). Built cleanly for the open-source AI software engineering community.
+Released under the [MIT License](./LICENSE).

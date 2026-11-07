@@ -1,6 +1,7 @@
 export type ModelProvider = "anthropic" | "openai" | "simulation";
 
 export type AgentRole =
+  | "super-router"
   | "claude-architect"
   | "claude-coder"
   | "codex-auditor"
@@ -81,7 +82,7 @@ export interface AgentStepLog {
   role: AgentRole;
   model: string;
   provider: ModelProvider;
-  phase: "plan" | "implement" | "audit" | "consolidate";
+  phase: "route" | "plan" | "implement" | "audit" | "consolidate";
   summary: string;
   detail: string;
   tokensIn: number;
@@ -100,6 +101,8 @@ export interface SwarmTask {
   updatedAt: string;
   worktreeId: string;
   branch: string;
+  workerId?: string;
+  routerTicketId?: string;
   steps: AgentStepLog[];
   securityReport?: SecurityAuditReport;
   generatedPatch: string;
@@ -163,4 +166,94 @@ export interface FinOpsSummary {
       costUsd: number;
     }
   >;
+}
+
+// ============================================================================
+// DeepSeek Super-Agent (dsh-superagent) Architecture Domain Types
+// ============================================================================
+
+export type EventSourceChannel =
+  | "github-webhook"
+  | "feishu-im"
+  | "ci-pipeline"
+  | "cli-direct"
+  | "watchdog-daemon";
+
+export interface RawInboundEvent {
+  id: string;
+  channel: EventSourceChannel;
+  sender: string;
+  subject: string;
+  payload: string;
+  timestamp: string;
+}
+
+export interface FilteredEventRecord {
+  event: RawInboundEvent;
+  filterOutcome: "DROPPED_NOISE" | "ROUTED_TO_WORKER";
+  filterRuleId: string;
+  reason: string;
+  tokensSavedEstimate: number;
+  routedTicketId?: string;
+}
+
+export interface RouterTicket {
+  ticketId: string;
+  sourceEventId: string;
+  intentCategory: "feature" | "security-hotfix" | "refactor" | "ci-repair";
+  priority: "P0" | "P1" | "P2";
+  assignedWorkerId: string;
+  worktreeBranch: string;
+  routerConstraintVerified: boolean; // Always true: Router never executes Bash/code directly
+  dispatchedAt: string;
+}
+
+export interface WorkerNode {
+  workerId: string;
+  ticketId: string;
+  taskId: string;
+  title: string;
+  worktreeBranch: string;
+  status: "running" | "completed_silent" | "escalated_inbox" | "healed_by_watchdog";
+  heartbeatLatencyMs: number;
+  toolCallsCount: number;
+  loopDetected: boolean;
+  tokenBudgetUsedPct: number;
+  updatedAt: string;
+}
+
+export interface WatchdogIncident {
+  incidentId: string;
+  workerId: string;
+  anomalyType: "infinite-tool-loop" | "heartbeat-stall" | "token-runaway";
+  signature: string;
+  actionTaken: "auto-healed-reset" | "escalated-to-human";
+  timestamp: string;
+  detail: string;
+}
+
+export interface AttentionInboxItem {
+  inboxId: string;
+  taskId: string;
+  workerId: string;
+  category: "security-gate-block" | "watchdog-anomaly" | "architecture-signoff";
+  severity: "critical" | "high" | "normal";
+  title: string;
+  summary: string;
+  branch: string;
+  riskScore: number;
+  createdAt: string;
+  resolved: boolean;
+  resolution?: "approved" | "rejected";
+}
+
+export interface SuperAgentTelemetry {
+  attentionSlotsUsed: number;
+  attentionSlotsMax: number;
+  totalEventsIngested: number;
+  noiseEventsDropped: number;
+  noiseFilterRatioPct: number;
+  tokensSavedByFilter: number;
+  silentCompletionsCount: number;
+  routerDirectExecViolations: number; // Strictly 0 per dsh-superagent invariant
 }

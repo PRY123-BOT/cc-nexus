@@ -1,8 +1,10 @@
 import { MCPHubManager } from "./mcp-hub.ts";
 import { MemoryDreamEngine } from "./memory-dream.ts";
 import { SecurityGate } from "./security-gate.ts";
+import { SuperAgentEngine } from "./super-agent.ts";
 import type {
   AgentStepLog,
+  EventSourceChannel,
   FinOpsSummary,
   SwarmTask,
 } from "./types.ts";
@@ -15,6 +17,7 @@ export class SwarmOrchestrator {
   public readonly memoryDream = new MemoryDreamEngine();
   public readonly mcpHub = new MCPHubManager();
   public readonly adapter = new DualEngineAdapter();
+  public readonly superAgent = new SuperAgentEngine();
 
   private tasks: Map<string, SwarmTask> = new Map();
   private listeners: Set<(event: Record<string, unknown>) => void> = new Set();
@@ -28,7 +31,7 @@ export class SwarmOrchestrator {
     return () => this.listeners.delete(listener);
   }
 
-  private emit(type: string, payload: unknown): void {
+  public emit(type: string, payload: unknown): void {
     const message = {
       type,
       timestamp: new Date().toISOString(),
@@ -54,14 +57,75 @@ export class SwarmOrchestrator {
   }
 
   /**
-   * Executes the full 3-stage Claude x OpenAI Codex multi-agent workflow:
+   * Ingests a multi-channel event through the DeepSeek Super-Agent Deterministic Filter.
+   * If noise -> dropped immediately with 0 LLM token spend.
+   * If valid signal -> Router dispatches to an isolated Worker and executes the Swarm pipeline.
+   */
+  public async ingestChannelEvent(input: {
+    channel: EventSourceChannel;
+    sender: string;
+    subject: string;
+    payload: string;
+  }) {
+    const { record, ticket } = this.superAgent.ingestEvent(input);
+    if (record.filterOutcome === "DROPPED_NOISE" || !ticket) {
+      this.emit("event:filtered", record);
+      return { record, routedTask: undefined };
+    }
+
+    const routedTask = await this.runSwarmTask(
+      input.subject,
+      input.payload,
+      ticket.ticketId,
+      ticket.assignedWorkerId
+    );
+    return { record, ticket, routedTask };
+  }
+
+  /**
+   * Executes the full 4-stage Super-Agent workflow:
+   * 0. Always-On Router dispatches ticket without touching Bash/code.
    * 1. Claude Architect plans the change and provisions a Git worktree sandbox.
    * 2. Claude Coder generates the unified diff patch inside the worktree.
    * 3. OpenAI Codex Auditor + Static AST SecurityGate audits the patch before merge.
    */
-  public async runSwarmTask(title: string, prompt: string): Promise<SwarmTask> {
+  public async runSwarmTask(
+    title: string,
+    prompt: string,
+    existingTicketId?: string,
+    existingWorkerId?: string
+  ): Promise<SwarmTask> {
     const taskId = `task-${Date.now().toString(36)}`;
     const now = new Date().toISOString();
+
+    let ticketId = existingTicketId;
+    let workerId = existingWorkerId;
+    if (!ticketId || !workerId) {
+      const dispatched = this.superAgent.ingestEvent({
+        channel: "cli-direct",
+        sender: "operator@studio",
+        subject: title,
+        payload: prompt,
+      });
+      ticketId = dispatched.ticket?.ticketId || `tkt-${Date.now().toString(36)}`;
+      workerId = dispatched.ticket?.assignedWorkerId || "worker-03";
+    }
+
+    const stepRoute: AgentStepLog = {
+      id: `${taskId}-step-0`,
+      timestamp: now,
+      role: "super-router",
+      model: "dsh-router-light",
+      provider: "simulation",
+      phase: "route",
+      summary: `Router verified intent & spawned isolated ${workerId} (Direct Bash = FALSE)`,
+      detail: `Ticket ${ticketId} dispatched to ${workerId}. Human attention budget preserved.`,
+      tokensIn: 310,
+      tokensOut: 95,
+      cachedTokens: 240,
+      costUsd: 0.0004,
+      durationMs: 12,
+    };
 
     // 1. Architect Step
     const archRes = await this.adapter.invokeAgent("claude-architect", prompt);
@@ -102,7 +166,7 @@ export class SwarmOrchestrator {
 
     const sandbox = this.worktrees.createSandbox(
       taskId,
-      "claude-coder + codex-auditor",
+      `${workerId} (claude-coder + codex-auditor)`,
       patch
     );
 
@@ -147,6 +211,17 @@ export class SwarmOrchestrator {
     };
 
     const blockedOrWarn = auditReport.verdict !== "PASS";
+    this.superAgent.registerWorkerForTask({
+      workerId,
+      ticketId,
+      taskId,
+      title,
+      worktreeBranch: sandbox.branch,
+      escalateToInbox: blockedOrWarn,
+      riskScore: auditReport.riskScore,
+      summary: auditReport.codexReviewSummary,
+    });
+
     const task: SwarmTask = {
       id: taskId,
       title,
@@ -161,13 +236,15 @@ export class SwarmOrchestrator {
       updatedAt: new Date().toISOString(),
       worktreeId: sandbox.id,
       branch: sandbox.branch,
-      steps: [stepArch, stepCode, stepAudit],
+      workerId,
+      routerTicketId: ticketId,
+      steps: [stepRoute, stepArch, stepCode, stepAudit],
       securityReport: auditReport,
       generatedPatch: patch,
       pendingApproval: blockedOrWarn
         ? {
             approvalId: `apr-${taskId}`,
-            action: "Merge Worktree Patch with Security Warnings",
+            action: "Human Attention Inbox: Sign-Off Required",
             commandOrFile: sandbox.branch,
             reason: auditReport.codexReviewSummary,
             requestedAt: new Date().toISOString(),
@@ -179,7 +256,7 @@ export class SwarmOrchestrator {
     this.memoryDream.addFragment({
       category: "architecture",
       title: `Pattern from ${title}`,
-      content: `Verified implementation in branch ${sandbox.branch} with Codex risk score ${auditReport.riskScore}/100.`,
+      content: `Verified implementation in branch ${sandbox.branch} (${workerId}) with Codex risk score ${auditReport.riskScore}/100.`,
       confidence: 0.94,
       sourceTaskId: taskId,
     });
@@ -205,6 +282,7 @@ export class SwarmOrchestrator {
       this.worktrees.updateSandboxStatus(task.worktreeId, "discarded");
     }
 
+    this.superAgent.resolveInboxItem(taskId, decision);
     this.emit("task:updated", task);
     return task;
   }
@@ -257,8 +335,20 @@ export class SwarmOrchestrator {
   }
 
   private seedInitialTasks(): void {
-    const patch1 = this.worktrees.getSandbox("wt-task-jwt-hardening")?.samplePatch || "";
+    const patch1 =
+      this.worktrees.getSandbox("wt-task-jwt-hardening")?.samplePatch || "";
     const report1 = this.securityGate.auditContent(patch1, "diff");
+
+    this.superAgent.registerWorkerForTask({
+      workerId: "worker-01",
+      ticketId: "tkt-001",
+      taskId: "task-jwt-hardening",
+      title: "Harden JWT Bearer Verification & Signature Checks",
+      worktreeBranch: "nexus/task-jwt-hardening",
+      escalateToInbox: false,
+      riskScore: report1.riskScore,
+      summary: report1.codexReviewSummary,
+    });
 
     const task1: SwarmTask = {
       id: "task-jwt-hardening",
@@ -270,9 +360,28 @@ export class SwarmOrchestrator {
       updatedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
       worktreeId: "wt-task-jwt-hardening",
       branch: "nexus/task-jwt-hardening",
+      workerId: "worker-01",
+      routerTicketId: "tkt-001",
       generatedPatch: patch1,
       securityReport: report1,
       steps: [
+        {
+          id: "step-jwt-0",
+          timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+          role: "super-router",
+          model: "dsh-router-light",
+          provider: "simulation",
+          phase: "route",
+          summary:
+            "Router classified P0 security-hotfix & spawned isolated worker-01",
+          detail:
+            "Router constraint verified (Direct Bash = FALSE). Dispatched tkt-001.",
+          tokensIn: 280,
+          tokensOut: 85,
+          cachedTokens: 210,
+          costUsd: 0.0003,
+          durationMs: 11,
+        },
         {
           id: "step-jwt-1",
           timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
@@ -280,7 +389,8 @@ export class SwarmOrchestrator {
           model: "claude-opus-4-6",
           provider: "anthropic",
           phase: "plan",
-          summary: "Designed zero-trust JWT envelope check & isolated worktree branch",
+          summary:
+            "Designed zero-trust JWT envelope check & isolated worktree branch",
           detail:
             "Created isolated Git worktree `.cc-nexus/worktrees/task-jwt-hardening` and specified compact serialization invariants.",
           tokensIn: 1850,
@@ -296,7 +406,8 @@ export class SwarmOrchestrator {
           model: "claude-sonnet-4-5",
           provider: "anthropic",
           phase: "implement",
-          summary: "Implemented strict Bearer parser + bun:test suite (+16/-1 lines)",
+          summary:
+            "Implemented strict Bearer parser + bun:test suite (+16/-1 lines)",
           detail: patch1,
           tokensIn: 2420,
           tokensOut: 780,
@@ -311,7 +422,7 @@ export class SwarmOrchestrator {
           model: "openai-codex-security",
           provider: "openai",
           phase: "audit",
-          summary: "OpenAI Codex Security Gate: PASS (Risk Score 0/100)",
+          summary: "OpenAI Codex Security Gate: PASS (Silent Merge, 0 Attention Cost)",
           detail: report1.codexReviewSummary,
           tokensIn: 1640,
           tokensOut: 320,
@@ -335,10 +446,21 @@ export class SwarmOrchestrator {
 
     const sandbox2 = this.worktrees.createSandbox(
       "task-remote-webhook-sync",
-      "claude-coder + codex-auditor",
+      "worker-02 (claude-coder + codex-auditor)",
       riskyPatch
     );
     const report2 = this.securityGate.auditContent(riskyPatch, "diff");
+
+    this.superAgent.registerWorkerForTask({
+      workerId: "worker-02",
+      ticketId: "tkt-002",
+      taskId: "task-remote-webhook-sync",
+      title: "Add Remote Deployment Bootstrapper Hook",
+      worktreeBranch: sandbox2.branch,
+      escalateToInbox: true,
+      riskScore: report2.riskScore,
+      summary: report2.codexReviewSummary,
+    });
 
     const task2: SwarmTask = {
       id: "task-remote-webhook-sync",
@@ -350,16 +472,34 @@ export class SwarmOrchestrator {
       updatedAt: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
       worktreeId: sandbox2.id,
       branch: sandbox2.branch,
+      workerId: "worker-02",
+      routerTicketId: "tkt-002",
       generatedPatch: riskyPatch,
       securityReport: report2,
       pendingApproval: {
         approvalId: "apr-remote-sync",
-        action: "Execute & Merge Remote Bootstrap Patch",
+        action: "Attention Inbox Escalation: Codex Blocked Merge",
         commandOrFile: "src/deploy/remote-sync.ts",
         reason: report2.codexReviewSummary,
         requestedAt: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
       },
       steps: [
+        {
+          id: "step-rem-0",
+          timestamp: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
+          role: "super-router",
+          model: "dsh-router-light",
+          provider: "simulation",
+          phase: "route",
+          summary:
+            "Router ingested Feishu IM request & spawned isolated worker-02",
+          detail: "Dispatched tkt-002 to worker-02.",
+          tokensIn: 295,
+          tokensOut: 90,
+          cachedTokens: 200,
+          costUsd: 0.0003,
+          durationMs: 14,
+        },
         {
           id: "step-rem-1",
           timestamp: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
@@ -367,7 +507,8 @@ export class SwarmOrchestrator {
           model: "claude-sonnet-4-5",
           provider: "anthropic",
           phase: "implement",
-          summary: "Drafted remote hook in isolated worktree nexus/task-remote-webhook-sync",
+          summary:
+            "Drafted remote hook in isolated worktree nexus/task-remote-webhook-sync",
           detail: riskyPatch,
           tokensIn: 1520,
           tokensOut: 410,
@@ -382,7 +523,7 @@ export class SwarmOrchestrator {
           model: "openai-codex-security",
           provider: "openai",
           phase: "audit",
-          summary: `Codex Security Gate Intercepted ${report2.findings.length} High/Medium Risks (Score ${report2.riskScore}/100)`,
+          summary: `Codex Gate Intercepted ${report2.findings.length} Risks (Score ${report2.riskScore}/100) -> Escalated to Inbox`,
           detail: report2.codexReviewSummary,
           tokensIn: 1490,
           tokensOut: 450,

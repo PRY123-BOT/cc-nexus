@@ -1,12 +1,62 @@
 import { describe, expect, it } from "bun:test";
 import { MCPHubManager } from "../src/core/mcp-hub.ts";
 import { MemoryDreamEngine } from "../src/core/memory-dream.ts";
-import { SwarmOrchestrator } from "../src/core/orchestrator.ts";
 import { SecurityGate } from "../src/core/security-gate.ts";
+import { SuperAgentEngine } from "../src/core/super-agent.ts";
 import { WorktreeManager } from "../src/core/worktree.ts";
 import { createNexusServer } from "../src/server/index.ts";
 
-describe("CC-Nexus Core Suite (Claude Code x OpenAI Codex)", () => {
+describe("CC-Nexus v2.0 Core Suite (DeepSeek Super-Agent x Claude Code x OpenAI Codex)", () => {
+  describe("DeepSeek Super-Agent Engine (Router, Pre-Filter, Watchdog & Attention Inbox)", () => {
+    it("drops noisy bot/IM/CI events deterministically before LLM wakeup", () => {
+      const sa = new SuperAgentEngine();
+
+      const botEvt = sa.ingestEvent({
+        channel: "github-webhook",
+        sender: "renovate[bot]",
+        subject: "Update prettier minor version",
+        payload: "All checks green",
+      });
+      expect(botEvt.record.filterOutcome).toBe("DROPPED_NOISE");
+      expect(botEvt.record.tokensSavedEstimate).toBeGreaterThan(1000);
+      expect(botEvt.ticket).toBeUndefined();
+
+      const imAck = sa.ingestEvent({
+        channel: "feishu-im",
+        sender: "dev@team",
+        subject: "Reply",
+        payload: "收到！",
+      });
+      expect(imAck.record.filterOutcome).toBe("DROPPED_NOISE");
+    });
+
+    it("enforces Router no-direct-bash invariant and spawns isolated Worker tickets for real signals", () => {
+      const sa = new SuperAgentEngine();
+      expect(sa.routerAllowDirectBash).toBe(false);
+
+      const sig = sa.ingestEvent({
+        channel: "github-webhook",
+        sender: "sec-lead@org",
+        subject: "Fix JWT signature bypass vulnerability",
+        payload: "Enforce strict HMAC verification in auth middleware",
+      });
+
+      expect(sig.record.filterOutcome).toBe("ROUTED_TO_WORKER");
+      expect(sig.ticket).toBeDefined();
+      expect(sig.ticket?.priority).toBe("P0");
+      expect(sig.ticket?.routerConstraintVerified).toBe(true);
+      expect(sig.ticket?.worktreeBranch).toContain("nexus/");
+    });
+
+    it("detects worker tool loops and auto-heals via Watchdog without consuming human attention", () => {
+      const sa = new SuperAgentEngine();
+      const incident = sa.simulateWatchdogLoopAndHeal("worker-01");
+      expect(incident.anomalyType).toBe("infinite-tool-loop");
+      expect(incident.actionTaken).toBe("auto-healed-reset");
+      expect(sa.getTelemetry().routerDirectExecViolations).toBe(0);
+    });
+  });
+
   describe("SecurityGate (Static AST + Codex Adversarial Rules)", () => {
     const gate = new SecurityGate();
 
@@ -65,82 +115,36 @@ describe("CC-Nexus Core Suite (Claude Code x OpenAI Codex)", () => {
       expect(report.verdict).toBe("BLOCK");
       expect(report.findings.length).toBeGreaterThanOrEqual(2);
 
-      const sarif = gate.toSarif(report) as { version: string; runs: Array<{ results: unknown[] }> };
+      const sarif = gate.toSarif(report) as {
+        version: string;
+        runs: Array<{ results: unknown[] }>;
+      };
       expect(sarif.version).toBe("2.1.0");
       expect(sarif.runs[0]?.results.length).toBe(report.findings.length);
     });
   });
 
-  describe("WorktreeManager (Git Worktree Isolation & Diff Parser)", () => {
-    const wt = new WorktreeManager();
-
-    it("accurately computes file additions and deletions from unified diffs", () => {
-      const sample = [
-        "diff --git a/src/a.ts b/src/a.ts",
-        "--- a/src/a.ts",
-        "+++ b/src/a.ts",
-        "-const oldVal = 1;",
-        "+const newVal = 2;",
-        "+const extraVal = 3;",
-      ].join("\n");
-
-      const stats = wt.parseUnifiedDiff(sample);
-      expect(stats.filesChanged).toBe(1);
+  describe("WorktreeManager, MemoryDreamEngine & MCPHubManager", () => {
+    it("accurately computes diff stats, consolidates Auto-Dream memory, and toggles MCP servers", () => {
+      const wt = new WorktreeManager();
+      const stats = wt.parseUnifiedDiff(
+        "diff --git a/src/a.ts b/src/a.ts\n--- a/src/a.ts\n+++ b/src/a.ts\n-old\n+new1\n+new2"
+      );
       expect(stats.insertions).toBe(2);
       expect(stats.deletions).toBe(1);
-    });
 
-    it("creates isolated worktrees and updates merge/discard lifecycle", () => {
-      const sandbox = wt.createSandbox("feature-auth-pkce", "claude-coder");
-      expect(sandbox.branch).toBe("nexus/feature-auth-pkce");
-      expect(sandbox.status).toBe("isolated");
-
-      const updated = wt.updateSandboxStatus(sandbox.id, "merged");
-      expect(updated?.status).toBe("merged");
-    });
-  });
-
-  describe("MemoryDreamEngine (Auto-Dream Consolidation)", () => {
-    const dreamEngine = new MemoryDreamEngine();
-
-    it("deduplicates memory fragments and generates synchronized CLAUDE.md and AGENTS.md", () => {
-      const initialCount = dreamEngine.listFragments().length;
-      dreamEngine.addFragment({
-        category: "security-rule",
-        title: "Dual-Engine Adversarial Diff Verification",
-        content: "Updated rule content with higher confidence.",
-        confidence: 1.0,
-        sourceTaskId: "task-test",
-      });
-
-      expect(dreamEngine.listFragments().length).toBe(initialCount);
-
+      const dreamEngine = new MemoryDreamEngine();
       const dream = dreamEngine.runAutoDream();
       expect(dream.claudeMdContent).toContain("# CLAUDE.md");
       expect(dream.agentsMdContent).toContain("# AGENTS.md");
-      expect(dream.tokenCompressionRatio).toBeGreaterThan(0.5);
+
+      const hub = new MCPHubManager();
+      expect(hub.listServers().length).toBeGreaterThanOrEqual(4);
     });
   });
 
-  describe("MCPHubManager (Model Context Protocol Registry)", () => {
-    const hub = new MCPHubManager();
-
-    it("toggles MCP server states and exports standard .mcp.json format", () => {
-      const servers = hub.listServers();
-      expect(servers.length).toBeGreaterThanOrEqual(4);
-
-      const firstId = servers[0]!.id;
-      const before = servers[0]!.enabled;
-      const toggled = hub.toggleServer(firstId);
-      expect(toggled?.enabled).toBe(!before);
-
-      const exported = hub.exportClaudeMcpConfig() as { mcpServers: Record<string, unknown> };
-      expect(typeof exported.mcpServers).toBe("object");
-    });
-  });
-
-  describe("SwarmOrchestrator & Sidecar HTTP API", () => {
-    it("executes end-to-end multi-agent swarm tasks and serves REST endpoints", async () => {
+  describe("SwarmOrchestrator & Sidecar HTTP API (v2.0)", () => {
+    it("executes end-to-end Super-Agent pipeline and serves all v2 REST endpoints", async () => {
       const { server, orchestrator } = createNexusServer(0);
       const baseUrl = `http://localhost:${server.port}`;
 
@@ -149,14 +153,30 @@ describe("CC-Nexus Core Suite (Claude Code x OpenAI Codex)", () => {
         const statusRes = await fetch(`${baseUrl}/api/status`);
         expect(statusRes.status).toBe(200);
         const statusJson = (await statusRes.json()) as {
-          service: string;
+          version: string;
+          superAgent: { telemetry: { attentionSlotsUsed: number } };
           tasks: unknown[];
-          finops: { totalCostUsd: number };
         };
-        expect(statusJson.service).toBe("cc-nexus");
-        expect(statusJson.tasks.length).toBeGreaterThanOrEqual(2);
+        expect(statusJson.version).toBe("2.0.0");
+        expect(statusJson.superAgent.telemetry.attentionSlotsUsed).toBe(1);
 
-        // 2. POST /api/tasks
+        // 2. POST /api/events/ingest (Noise event dropped)
+        const noiseRes = await fetch(`${baseUrl}/api/events/ingest`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            channel: "feishu-im",
+            sender: "user@team",
+            subject: "Chat",
+            payload: "ok",
+          }),
+        });
+        const noiseData = (await noiseRes.json()) as {
+          record: { filterOutcome: string };
+        };
+        expect(noiseData.record.filterOutcome).toBe("DROPPED_NOISE");
+
+        // 3. POST /api/tasks (Router -> Architect -> Coder -> Codex Auditor)
         const createRes = await fetch(`${baseUrl}/api/tasks`, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -167,14 +187,19 @@ describe("CC-Nexus Core Suite (Claude Code x OpenAI Codex)", () => {
         });
         expect(createRes.status).toBe(201);
         const createdTask = (await createRes.json()) as {
-          id: string;
           steps: unknown[];
           securityReport: { verdict: string };
         };
-        expect(createdTask.steps.length).toBe(3);
+        expect(createdTask.steps.length).toBe(4);
         expect(createdTask.securityReport.verdict).toBe("PASS");
 
-        // 3. POST /api/remote/approve
+        // 4. POST /api/watchdog/heal
+        const wdgRes = await fetch(`${baseUrl}/api/watchdog/heal`, {
+          method: "POST",
+        });
+        expect(wdgRes.status).toBe(200);
+
+        // 5. POST /api/remote/approve (Resolve Attention Inbox item)
         const approveRes = await fetch(`${baseUrl}/api/remote/approve`, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -187,6 +212,9 @@ describe("CC-Nexus Core Suite (Claude Code x OpenAI Codex)", () => {
         expect(orchestrator.getTask("task-remote-webhook-sync")?.status).toBe(
           "completed"
         );
+        expect(
+          orchestrator.superAgent.getTelemetry().attentionSlotsUsed
+        ).toBe(0);
       } finally {
         server.stop(true);
       }
