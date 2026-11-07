@@ -1,5 +1,7 @@
 export type ModelProvider = "anthropic" | "openai" | "simulation";
 
+export type PersonaMode = "beginner" | "office" | "developer";
+
 export type AgentRole =
   | "super-router"
   | "claude-architect"
@@ -32,7 +34,8 @@ export interface SecurityFinding {
     | "path-traversal"
     | "unsafe-eval"
     | "sql-injection"
-    | "supply-chain";
+    | "supply-chain"
+    | "privacy-pii";
   line?: number;
   file?: string;
   snippet: string;
@@ -43,7 +46,7 @@ export interface SecurityFinding {
 export interface SecurityAuditReport {
   auditId: string;
   timestamp: string;
-  targetType: "diff" | "command" | "file";
+  targetType: "diff" | "command" | "file" | "document";
   riskScore: number; // 0 (safe) to 100 (critical danger)
   verdict: SecurityVerdict;
   findings: SecurityFinding[];
@@ -92,8 +95,18 @@ export interface AgentStepLog {
   durationMs: number;
 }
 
+export interface TaskDeliverable {
+  format: "markdown-doc" | "action-checklist" | "privacy-audit" | "code-diff";
+  title: string;
+  subtitle: string;
+  markdownBody: string;
+  safetyNotePlain: string;
+  exportFilename: string;
+}
+
 export interface SwarmTask {
   id: string;
+  persona: PersonaMode;
   title: string;
   prompt: string;
   status: TaskStatus;
@@ -106,6 +119,7 @@ export interface SwarmTask {
   steps: AgentStepLog[];
   securityReport?: SecurityAuditReport;
   generatedPatch: string;
+  deliverable?: TaskDeliverable;
   pendingApproval?: {
     approvalId: string;
     action: string;
@@ -168,10 +182,6 @@ export interface FinOpsSummary {
   >;
 }
 
-// ============================================================================
-// DeepSeek Super-Agent (dsh-superagent) Architecture Domain Types
-// ============================================================================
-
 export type EventSourceChannel =
   | "github-webhook"
   | "feishu-im"
@@ -200,11 +210,11 @@ export interface FilteredEventRecord {
 export interface RouterTicket {
   ticketId: string;
   sourceEventId: string;
-  intentCategory: "feature" | "security-hotfix" | "refactor" | "ci-repair";
+  intentCategory: "feature" | "security-hotfix" | "refactor" | "ci-repair" | "office-doc" | "beginner-assist";
   priority: "P0" | "P1" | "P2";
   assignedWorkerId: string;
   worktreeBranch: string;
-  routerConstraintVerified: boolean; // Always true: Router never executes Bash/code directly
+  routerConstraintVerified: boolean;
   dispatchedAt: string;
 }
 
@@ -212,6 +222,7 @@ export interface WorkerNode {
   workerId: string;
   ticketId: string;
   taskId: string;
+  persona: PersonaMode;
   title: string;
   worktreeBranch: string;
   status: "running" | "completed_silent" | "escalated_inbox" | "healed_by_watchdog";
@@ -236,7 +247,8 @@ export interface AttentionInboxItem {
   inboxId: string;
   taskId: string;
   workerId: string;
-  category: "security-gate-block" | "watchdog-anomaly" | "architecture-signoff";
+  persona: PersonaMode;
+  category: "security-gate-block" | "watchdog-anomaly" | "architecture-signoff" | "privacy-redaction";
   severity: "critical" | "high" | "normal";
   title: string;
   summary: string;
@@ -255,5 +267,5 @@ export interface SuperAgentTelemetry {
   noiseFilterRatioPct: number;
   tokensSavedByFilter: number;
   silentCompletionsCount: number;
-  routerDirectExecViolations: number; // Strictly 0 per dsh-superagent invariant
+  routerDirectExecViolations: number;
 }

@@ -1,4 +1,4 @@
-import type { EventSourceChannel } from "../core/types.ts";
+import type { EventSourceChannel, PersonaMode } from "../core/types.ts";
 import { SwarmOrchestrator } from "../core/orchestrator.ts";
 import { renderStudioHtml } from "../ui/studio.ts";
 
@@ -53,8 +53,9 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
         return Response.json(
           {
             service: "cc-nexus",
-            version: "2.0.0",
-            architecture: "DeepSeek Super-Agent (Router/Worker) + Claude Code + OpenAI Codex",
+            version: "3.0.0",
+            architecture:
+              "DeepSeek Super-Agent (Router/Worker) + Claude Code + OpenAI Codex (Beginner/Office/Dev Desktop)",
             providers: orchestrator.adapter.getProviderStatus(),
             superAgent: orchestrator.superAgent.getSnapshot(),
             tasks: orchestrator.listTasks(),
@@ -68,14 +69,24 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
       }
 
       if (url.pathname === "/api/tasks" && req.method === "GET") {
-        return Response.json(orchestrator.listTasks(), { headers: corsHeaders });
+        const persona = url.searchParams.get("persona") as PersonaMode | null;
+        return Response.json(orchestrator.listTasks(persona || undefined), {
+          headers: corsHeaders,
+        });
       }
 
       if (url.pathname === "/api/tasks" && req.method === "POST") {
-        const body = (await req.json()) as { title?: string; prompt?: string };
+        const body = (await req.json()) as {
+          title?: string;
+          prompt?: string;
+          persona?: PersonaMode;
+        };
         const task = await orchestrator.runSwarmTask(
           body.title || "Autonomous Feature Task",
-          body.prompt || "Implement feature with Claude + Codex verification"
+          body.prompt || "Implement feature with Claude + Codex verification",
+          undefined,
+          undefined,
+          body.persona || "developer"
         );
         return Response.json(task, { status: 201, headers: corsHeaders });
       }
@@ -86,12 +97,14 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
           sender?: string;
           subject?: string;
           payload?: string;
+          persona?: PersonaMode;
         };
         const result = await orchestrator.ingestChannelEvent({
           channel: body.channel || "github-webhook",
           sender: body.sender || "external@webhook",
           subject: body.subject || "Incoming Event",
           payload: body.payload || "",
+          persona: body.persona,
         });
         return Response.json(result, { status: 201, headers: corsHeaders });
       }
@@ -110,7 +123,7 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
       if (url.pathname === "/api/security/audit" && req.method === "POST") {
         const body = (await req.json()) as {
           content?: string;
-          targetType?: "diff" | "command" | "file";
+          targetType?: "diff" | "command" | "file" | "document";
           sarif?: boolean;
         };
         const report = orchestrator.securityGate.auditContent(
@@ -162,7 +175,7 @@ export function createNexusServer(port = Number(process.env.PORT || 4789)) {
         ws.send(
           JSON.stringify({
             type: "welcome",
-            service: "cc-nexus-sidecar-v2",
+            service: "cc-nexus-sidecar-v3",
             timestamp: new Date().toISOString(),
           })
         );
@@ -189,6 +202,6 @@ if (import.meta.main) {
   const port = Number(process.env.PORT || 4789);
   const { server } = createNexusServer(port);
   console.log(
-    `\n[CC-NEXUS v2.0] Super-Agent Control Plane listening on http://localhost:${server.port}`
+    `\n[CC-NEXUS v3.0 Desktop] Multi-Persona Super-Agent listening on http://localhost:${server.port}`
   );
 }

@@ -13,7 +13,7 @@ interface RuleDefinition {
   weight: number;
   pattern: RegExp;
   remediation: string;
-  targetTypes: Array<"diff" | "command" | "file">;
+  targetTypes: Array<"diff" | "command" | "file" | "document">;
 }
 
 const SECURITY_RULES: RuleDefinition[] = [
@@ -26,7 +26,7 @@ const SECURITY_RULES: RuleDefinition[] = [
     pattern: /sk-ant-(?:api03-)?[A-Za-z0-9_-]{16,}/g,
     remediation:
       "Remove hardcoded Anthropic API key immediately; load via process.env.ANTHROPIC_API_KEY and rotate the leaked credential.",
-    targetTypes: ["diff", "file", "command"],
+    targetTypes: ["diff", "file", "command", "document"],
   },
   {
     ruleId: "CCN-SEC-002",
@@ -37,7 +37,7 @@ const SECURITY_RULES: RuleDefinition[] = [
     pattern: /sk-(?:proj|live|svcacct)-[A-Za-z0-9_-]{16,}/g,
     remediation:
       "Remove hardcoded OpenAI API key; inject via process.env.OPENAI_API_KEY and revoke the exposed key in OpenAI Platform settings.",
-    targetTypes: ["diff", "file", "command"],
+    targetTypes: ["diff", "file", "command", "document"],
   },
   {
     ruleId: "CCN-SEC-003",
@@ -48,7 +48,7 @@ const SECURITY_RULES: RuleDefinition[] = [
     pattern: /(?:AKIA[0-9A-Z]{16}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)/g,
     remediation:
       "Store cloud credentials and private keys in a secret manager or local untracked .env file excluded by .gitignore.",
-    targetTypes: ["diff", "file", "command"],
+    targetTypes: ["diff", "file", "command", "document"],
   },
   {
     ruleId: "CCN-SEC-004",
@@ -118,16 +118,23 @@ const SECURITY_RULES: RuleDefinition[] = [
       "Normalize file paths with path.resolve() and verify the resolved path starts with the allowed workspace root.",
     targetTypes: ["diff", "file", "command"],
   },
+  {
+    ruleId: "CCN-SEC-010",
+    title: "Unredacted Personal ID / Bank Account / Phone PII in Document",
+    severity: "high",
+    category: "privacy-pii",
+    weight: 35,
+    pattern: /(?:身份证[号：:\s]*\d{14}[\dXx]{4}|银行卡[号：:\s]*\d{16,19})/g,
+    remediation:
+      "Mask personal ID and bank card numbers (e.g., 3101**********1234) before sharing or exporting external office documents.",
+    targetTypes: ["document", "diff", "file"],
+  },
 ];
 
 export class SecurityGate {
-  /**
-   * Audits a unified git diff, shell command, or source code snippet.
-   * Combines deterministic static pattern analysis with OpenAI Codex adversarial review heuristics.
-   */
   public auditContent(
     content: string,
-    targetType: "diff" | "command" | "file" = "diff",
+    targetType: "diff" | "command" | "file" | "document" = "diff",
     fileHint?: string
   ): SecurityAuditReport {
     const findings: SecurityFinding[] = [];
@@ -136,13 +143,15 @@ export class SecurityGate {
     let currentDiffFile = fileHint || "workspace";
 
     lines.forEach((lineText, idx) => {
-      // Track unified diff file headers
       if (lineText.startsWith("+++ b/")) {
         currentDiffFile = lineText.slice(6).trim();
         return;
       }
-      // Skip removed lines in unified diffs to avoid false positives on secrets being deleted
-      if (targetType === "diff" && lineText.startsWith("-") && !lineText.startsWith("---")) {
+      if (
+        targetType === "diff" &&
+        lineText.startsWith("-") &&
+        !lineText.startsWith("---")
+      ) {
         return;
       }
 
@@ -161,7 +170,8 @@ export class SecurityGate {
             snippet: lineText.trim().slice(0, 140),
             remediation: rule.remediation,
             detectedBy:
-              rule.category === "code-injection" || rule.category === "sql-injection"
+              rule.category === "code-injection" ||
+              rule.category === "sql-injection"
                 ? "openai-codex"
                 : "static-ast",
           });
@@ -183,7 +193,11 @@ export class SecurityGate {
           ? "WARN"
           : "PASS";
 
-    const codexReviewSummary = this.buildCodexSummary(verdict, riskScore, findings);
+    const codexReviewSummary = this.buildCodexSummary(
+      verdict,
+      riskScore,
+      findings
+    );
 
     return {
       auditId: `audit-${Date.now().toString(36)}`,
@@ -197,9 +211,6 @@ export class SecurityGate {
     };
   }
 
-  /**
-   * Exports a SecurityAuditReport in GitHub SARIF 2.1.0 format for GitHub Advanced Security / Codex Security integration.
-   */
   public toSarif(report: SecurityAuditReport): Record<string, unknown> {
     return {
       $schema: "https://json.schemastore.org/sarif-2.1.0.json",
@@ -210,7 +221,7 @@ export class SecurityGate {
             driver: {
               name: "CC-Nexus Dual-Engine Security Gate (Claude x Codex)",
               informationUri: "https://github.com/PRY123-BOT/cc-nexus",
-              version: "1.0.0",
+              version: "3.0.0",
               rules: SECURITY_RULES.map((r) => ({
                 id: r.ruleId,
                 name: r.title,
@@ -252,10 +263,12 @@ export class SecurityGate {
     if (findings.length === 0) {
       return "OpenAI Codex Security Gate verified 0 policy violations or injection vectors. Safe to merge worktree branch.";
     }
-    const categories = Array.from(new Set(findings.map((f) => f.category))).join(", ");
+    const categories = Array.from(new Set(findings.map((f) => f.category))).join(
+      ", "
+    );
     if (verdict === "BLOCK") {
-      return `BLOCKED by Codex Security Gate (Risk Score ${riskScore}/100): Detected ${findings.length} critical/high finding(s) across [${categories}]. Automatic worktree merge prevented pending remediation.`;
+      return `BLOCKED by Codex Security Gate (Risk Score ${riskScore}/100): Detected ${findings.length} critical/high finding(s) across [${categories}]. Automatic merge prevented pending remediation.`;
     }
-    return `WARN by Codex Security Gate (Risk Score ${riskScore}/100): Found ${findings.length} medium/low issue(s) in [${categories}]. Human review recommended before merging.`;
+    return `WARN by Codex Security Gate (Risk Score ${riskScore}/100): Found ${findings.length} issue(s) in [${categories}]. Human review recommended before approval.`;
   }
 }

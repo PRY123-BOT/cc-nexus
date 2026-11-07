@@ -1,18 +1,17 @@
 {
   "name": "cc-nexus",
-  "version": "2.0.0",
-  "description": "Autonomous Super-Agent Control Plane (Router/Worker), Git Worktree Orchestrator & Cross-Model Security Gate for Claude Code and OpenAI Codex",
+  "version": "3.0.0",
+  "description": "Universal Super-Agent Desktop Workstation (Beginner, Office & Developer Modes) powered by DeepSeek Super-Agent, Claude Code & OpenAI Codex",
   "keywords": [
     "claude-code",
     "openai-codex",
     "deepseek-super-agent",
-    "dsh-superagent",
+    "desktop-app",
     "multi-agent",
+    "office-productivity",
     "git-worktree",
     "mcp",
-    "attention-inbox",
-    "security-gate",
-    "developer-tools"
+    "security-gate"
   ],
   "homepage": "https://github.com/PRY123-BOT/cc-nexus",
   "repository": {
@@ -28,6 +27,8 @@
   "scripts": {
     "start": "bun run src/server/index.ts",
     "dev": "bun --watch run src/server/index.ts",
+    "desktop": "bun run src/desktop/launcher.ts",
+    "build:desktop": "bun build src/desktop/launcher.ts --compile --windows-hide-console --outfile dist/CC-Nexus-Desktop.exe",
     "studio": "bun run src/cli/index.ts studio",
     "cli": "bun run src/cli/index.ts",
     "doctor": "bun run src/cli/index.ts doctor",

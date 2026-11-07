@@ -2,6 +2,7 @@ import type {
   AttentionInboxItem,
   EventSourceChannel,
   FilteredEventRecord,
+  PersonaMode,
   RawInboundEvent,
   RouterTicket,
   SuperAgentTelemetry,
@@ -9,19 +10,6 @@ import type {
   WorkerNode,
 } from "./types.ts";
 
-/**
- * DeepSeek Super-Agent (dsh-superagent) Architecture Engine
- *
- * Core Philosophy:
- *   "Take as little human attention as possible, and give as much value as possible."
- *
- * Architectural Invariants:
- *   1. Deterministic Event Pre-Filter drops high-noise webhooks/IM chatter BEFORE LLM invocation.
- *   2. Always-On Router Agent is strictly forbidden from executing Bash or editing files directly.
- *   3. Isolated Worker Agents execute concurrently in dedicated Git worktrees.
- *   4. Watchdog Daemon detects infinite tool loops / stalled workers and auto-heals them.
- *   5. Human Attention Inbox surfaces ONLY items requiring high-level human sign-off.
- */
 export class SuperAgentEngine {
   public readonly routerAllowDirectBash = false as const;
   private readonly maxAttentionSlots = 5;
@@ -36,10 +24,6 @@ export class SuperAgentEngine {
     this.seedInitialSuperAgentState();
   }
 
-  /**
-   * Stage 1: Deterministic Code Filter (Pre-LLM Noise Gate)
-   * Filters out noisy webhook pings, bot notifications, and trivial IM messages at zero LLM token cost.
-   */
   public ingestEvent(input: {
     channel: EventSourceChannel;
     sender: string;
@@ -60,7 +44,6 @@ export class SuperAgentEngine {
 
     const text = `${raw.subject} ${raw.payload}`.toLowerCase().trim();
 
-    // Rule 1: Automated dependency / bot noise without actionable failure
     if (
       raw.sender.includes("[bot]") &&
       !text.includes("vulnerability") &&
@@ -78,7 +61,6 @@ export class SuperAgentEngine {
       return { record };
     }
 
-    // Rule 2: Trivial IM chat acknowledgments ("ok", "收到", "+1", "lgtm", "thanks")
     if (
       raw.channel === "feishu-im" &&
       /^(ok|收到|好的|\+1|lgtm|thanks|thx|ack)[!！.。]*$/i.test(raw.payload.trim())
@@ -87,14 +69,13 @@ export class SuperAgentEngine {
         event: raw,
         filterOutcome: "DROPPED_NOISE",
         filterRuleId: "DSH-FLT-02 (IM Ephemeral Ack)",
-        reason: "Dropped conversational acknowledgment; zero engineering intent.",
+        reason: "Dropped conversational acknowledgment; zero actionable intent.",
         tokensSavedEstimate: 1420,
       };
       this.eventLog.unshift(record);
       return { record };
     }
 
-    // Rule 3: Formatting-only / docs-only CI pass notifications
     if (
       raw.channel === "ci-pipeline" &&
       text.includes("passed") &&
@@ -111,7 +92,6 @@ export class SuperAgentEngine {
       return { record };
     }
 
-    // Valid signal -> Forward to Always-On Router Agent
     const ticket = this.dispatchViaRouter(raw);
     const record: FilteredEventRecord = {
       event: raw,
@@ -125,10 +105,6 @@ export class SuperAgentEngine {
     return { record, ticket };
   }
 
-  /**
-   * Stage 2: Always-On Router Agent
-   * Strictly dispatches work to an isolated Worker without executing code or Bash itself.
-   */
   public dispatchViaRouter(event: RawInboundEvent): RouterTicket {
     const text = `${event.subject} ${event.payload}`.toLowerCase();
     const intentCategory: RouterTicket["intentCategory"] =
@@ -139,26 +115,32 @@ export class SuperAgentEngine {
       text.includes("pkce") ||
       text.includes("security")
         ? "security-hotfix"
-        : text.includes("ci") || text.includes("test") || text.includes("build")
-          ? "ci-repair"
-          : text.includes("refactor") || text.includes("clean")
-            ? "refactor"
-            : "feature";
+        : text.includes("周报") ||
+          text.includes("合同") ||
+          text.includes("会议") ||
+          text.includes("report")
+          ? "office-doc"
+          : text.includes("整理") || text.includes("攻略") || text.includes("生活")
+            ? "beginner-assist"
+            : text.includes("ci") || text.includes("test") || text.includes("build")
+              ? "ci-repair"
+              : "feature";
 
     const priority: RouterTicket["priority"] =
       intentCategory === "security-hotfix"
         ? "P0"
-        : intentCategory === "ci-repair"
+        : intentCategory === "office-doc" || intentCategory === "ci-repair"
           ? "P1"
           : "P2";
 
     const index = this.tickets.size + 1;
     const workerId = `worker-${String(index).padStart(2, "0")}`;
-    const slug = event.subject
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 26);
+    const slug =
+      event.subject
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 24) || workerId;
 
     const ticket: RouterTicket = {
       ticketId: `tkt-${String(index).padStart(3, "0")}`,
@@ -166,7 +148,7 @@ export class SuperAgentEngine {
       intentCategory,
       priority,
       assignedWorkerId: workerId,
-      worktreeBranch: `nexus/${slug || workerId}`,
+      worktreeBranch: `nexus/${slug}`,
       routerConstraintVerified: !this.routerAllowDirectBash,
       dispatchedAt: new Date().toISOString(),
     };
@@ -175,13 +157,11 @@ export class SuperAgentEngine {
     return ticket;
   }
 
-  /**
-   * Registers or updates an isolated Worker Agent tied to a SwarmTask.
-   */
   public registerWorkerForTask(params: {
     workerId?: string;
     ticketId?: string;
     taskId: string;
+    persona?: PersonaMode;
     title: string;
     worktreeBranch: string;
     escalateToInbox: boolean;
@@ -193,18 +173,20 @@ export class SuperAgentEngine {
       `worker-${String(this.workers.size + 1).padStart(2, "0")}`;
     const ticketId =
       params.ticketId || `tkt-${String(this.tickets.size + 1).padStart(3, "0")}`;
+    const persona = params.persona || "developer";
 
     const worker: WorkerNode = {
       workerId,
       ticketId,
       taskId: params.taskId,
+      persona,
       title: params.title,
       worktreeBranch: params.worktreeBranch,
       status: params.escalateToInbox ? "escalated_inbox" : "completed_silent",
-      heartbeatLatencyMs: 28 + (this.workers.size * 11) % 45,
+      heartbeatLatencyMs: 24 + ((this.workers.size * 11) % 40),
       toolCallsCount: params.escalateToInbox ? 7 : 5,
       loopDetected: false,
-      tokenBudgetUsedPct: params.escalateToInbox ? 64 : 38,
+      tokenBudgetUsedPct: params.escalateToInbox ? 62 : 35,
       updatedAt: new Date().toISOString(),
     };
 
@@ -216,7 +198,9 @@ export class SuperAgentEngine {
         inboxId,
         taskId: params.taskId,
         workerId,
-        category: "security-gate-block",
+        persona,
+        category:
+          persona === "office" ? "privacy-redaction" : "security-gate-block",
         severity: params.riskScore >= 50 ? "critical" : "high",
         title: params.title,
         summary: params.summary,
@@ -230,11 +214,6 @@ export class SuperAgentEngine {
     return worker;
   }
 
-  /**
-   * Stage 3: Watchdog Daemon Inspection & Auto-Heal
-   * Detects infinite tool loops (e.g. Worker calling identical grep/bash 4x in a row)
-   * and automatically resets the stuck context or escalates.
-   */
   public simulateWatchdogLoopAndHeal(targetWorkerId?: string): WatchdogIncident {
     const workersList = Array.from(this.workers.values());
     const worker =
@@ -245,7 +224,7 @@ export class SuperAgentEngine {
     if (worker) {
       worker.status = "healed_by_watchdog";
       worker.loopDetected = false;
-      worker.heartbeatLatencyMs = 21;
+      worker.heartbeatLatencyMs = 19;
       worker.updatedAt = new Date().toISOString();
     }
 
@@ -263,9 +242,6 @@ export class SuperAgentEngine {
     return incident;
   }
 
-  /**
-   * Stage 4: Resolve an item in the Human Attention Inbox
-   */
   public resolveInboxItem(
     taskIdOrInboxId: string,
     decision: "approve" | "reject"
@@ -299,7 +275,8 @@ export class SuperAgentEngine {
       0
     );
     const silentCount = Array.from(this.workers.values()).filter(
-      (w) => w.status === "completed_silent" || w.status === "healed_by_watchdog"
+      (w) =>
+        w.status === "completed_silent" || w.status === "healed_by_watchdog"
     ).length;
 
     return {
@@ -334,7 +311,6 @@ export class SuperAgentEngine {
   }
 
   private seedInitialSuperAgentState(): void {
-    // Seed realistic multi-channel events demonstrating deterministic noise filtering
     this.ingestEvent({
       channel: "github-webhook",
       sender: "dependabot[bot]",
@@ -361,7 +337,7 @@ export class SuperAgentEngine {
       sender: "security-audit@org",
       subject: "Harden JWT Bearer Verification & Signature Checks",
       payload:
-        "Issue #104: Enforce strict 3-segment JWT compact serialization validation in src/security/jwt-guard.ts.",
+        "Issue #104: Enforce strict 3-segment JWT compact serialization validation.",
     });
 
     this.ingestEvent({
@@ -369,7 +345,7 @@ export class SuperAgentEngine {
       sender: "sre-oncall@team",
       subject: "Add Remote Deployment Bootstrapper Hook",
       payload:
-        "Please add a remote sync helper in src/deploy/remote-sync.ts and verify command safety with OpenAI Codex Security Gate.",
+        "Create a remote sync helper in src/deploy/remote-sync.ts and verify command safety.",
     });
 
     this.watchdogIncidents.push({
