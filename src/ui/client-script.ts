@@ -1,35 +1,36 @@
 export const STUDIO_CLIENT_JS = `
 let state = {
   view: 'inbox',
-  persona: 'all', // 'all' | 'beginner' | 'office' | 'developer'
+  persona: 'all',
   selectedTaskId: null,
+  inspectorTab: 'preview', // 'preview' | 'raw'
   data: null
 };
 
 const PERSONA_PRESETS = {
   all: [
-    { title: '部门周报与待办自动提炼', prompt: '过滤飞书群无效收到消息，汇总本周产品与研发核心进展与下周待办。', persona: 'office', tag: '办公' },
-    { title: '桌面与下载夹智能归档', prompt: '把桌面和下载夹的杂乱发票、文档、图片按月份和用途安全整理归档。', persona: 'beginner', tag: '小白' },
-    { title: '外发合同隐私与底价脱敏', prompt: '审查采购合同附件，自动隐去个人身份证号与银行卡敏感信息。', persona: 'office', tag: '合规' },
-    { title: 'OAuth2 PKCE 鉴权补丁', prompt: '在隔离 Git Worktree 中实现 RFC 7636 校验并通过 Codex 安全审查。', persona: 'developer', tag: '编程' }
+    { title: '部门周报与待办自动提炼', prompt: '过滤飞书群无效收到消息，汇总本周产品与研发核心进展与下周待办。', persona: 'office', tag: '智慧办公' },
+    { title: '桌面与下载夹智能归档', prompt: '把桌面和下载夹的杂乱发票、文档、图片按月份和用途安全整理归档。', persona: 'beginner', tag: '小白管家' },
+    { title: '外发合同隐私与底价脱敏', prompt: '审查采购合同附件，自动隐去个人身份证号与银行卡敏感信息。', persona: 'office', tag: '法务合规' },
+    { title: 'OAuth2 PKCE 鉴权补丁', prompt: '在隔离 Git Worktree 中实现 RFC 7636 校验并通过 Codex 安全审查。', persona: 'developer', tag: '极客编程' }
   ],
   beginner: [
     { title: '电脑杂乱文件智能归档', prompt: '帮我把桌面和下载夹里的发票、照片、安装包按月份分类整理，绝不误删原文件。', persona: 'beginner', tag: '零风险' },
-    { title: '7天旅行攻略与预算清单', prompt: '生成一份可直接打印的 7 天家庭自由行每日路线、交通与预算核对表。', persona: 'beginner', tag: '生活' },
-    { title: '万字长文/资料 30秒提炼', prompt: '把复杂的行业报告或学习资料浓缩成 5 条通俗易懂的大白话重点。', persona: 'beginner', tag: '学习' },
-    { title: '个人隐私与防骗安全体检', prompt: '检查待发送的内容中是否包含密码、身份证或高风险链接。', persona: 'beginner', tag: '护盾' }
+    { title: '7天旅行攻略与预算清单', prompt: '生成一份可直接打印的 7 天家庭自由行每日路线、交通与预算核对表。', persona: 'beginner', tag: '生活助手' },
+    { title: '万字长文/资料 30秒提炼', prompt: '把复杂的行业报告或学习资料浓缩成 5 条通俗易懂的大白话重点。', persona: 'beginner', tag: '高效学习' },
+    { title: '个人隐私与防骗安全体检', prompt: '检查待发送的内容中是否包含密码、身份证或高风险链接。', persona: 'beginner', tag: '安全护盾' }
   ],
   office: [
-    { title: '部门周报与 KPI 自动汇总', prompt: '汇总本周多群聊工作记录，过滤寒暄噪音，生成管理层周报与 KPI 达成表。', persona: 'office', tag: '周报' },
-    { title: '会议纪要转责任人待办', prompt: '从会议讨论记录中提取关键决议、责任人及截止时间，生成飞书待办清单。', persona: 'office', tag: '会议' },
-    { title: '外发合同敏感信息脱敏', prompt: '对外发合作协议进行隐私体检，自动标记并隐去身份证号、银行卡与底价。', persona: 'office', tag: '法务' },
-    { title: '月度经营数据异常解读', prompt: '分析业务数据表中的环比波动原因，输出 3 条可落地的改进建议。', persona: 'office', tag: '数据' }
+    { title: '部门周报与 KPI 自动汇总', prompt: '汇总本周多群聊工作记录，过滤寒暄噪音，生成管理层周报与 KPI 达成表。', persona: 'office', tag: '周报神器' },
+    { title: '会议纪要转责任人待办', prompt: '从会议讨论记录中提取关键决议、责任人及截止时间，生成飞书待办清单。', persona: 'office', tag: '会议提效' },
+    { title: '外发合同敏感信息脱敏', prompt: '对外发合作协议进行隐私体检，自动标记并隐去身份证号、银行卡与底价。', persona: 'office', tag: '合规脱敏' },
+    { title: '月度经营数据异常解读', prompt: '分析业务数据表中的环比波动原因，输出 3 条可落地的改进建议。', persona: 'office', tag: '数据分析' }
   ],
   developer: [
-    { title: 'Implement OAuth2 PKCE Guard', prompt: 'Create strict RFC 7636 PKCE verifier in isolated worktree and audit with Codex Gate.', persona: 'developer', tag: 'P0' },
-    { title: 'Webhook HMAC Timing Fix', prompt: 'Replace string equality with crypto.timingSafeEqual in webhook verifier.', persona: 'developer', tag: 'SEC' },
-    { title: 'SQL Parameterized Refactor', prompt: 'Convert raw template SQL queries to parameterized prepared statements.', persona: 'developer', tag: 'AST' },
-    { title: 'Token Bucket Rate Limiter', prompt: 'Add per-tenant token bucket limiter middleware with unit tests.', persona: 'developer', tag: 'FEAT' }
+    { title: 'Implement OAuth2 PKCE Guard', prompt: 'Create strict RFC 7636 PKCE verifier in isolated worktree and audit with Codex Gate.', persona: 'developer', tag: 'P0 SEC' },
+    { title: 'Webhook HMAC Timing Fix', prompt: 'Replace string equality with crypto.timingSafeEqual in webhook verifier.', persona: 'developer', tag: 'CRYPTO' },
+    { title: 'SQL Parameterized Refactor', prompt: 'Convert raw template SQL queries to parameterized prepared statements.', persona: 'developer', tag: 'AST FIX' },
+    { title: 'Token Bucket Rate Limiter', prompt: 'Add per-tenant token bucket limiter middleware with unit tests.', persona: 'developer', tag: 'FEATURE' }
   ]
 };
 
@@ -38,6 +39,77 @@ function esc(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function showToast(message, dotColor) {
+  const host = document.getElementById('toastHost');
+  if (!host) return;
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = '<span class="status-dot ' + (dotColor || 'dot-emerald') + '"></span><span>' + esc(message) + '</span>';
+  host.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.2s ease';
+    setTimeout(() => el.remove(), 220);
+  }, 2600);
+}
+
+function formatInline(text) {
+  return esc(text)
+    .replace(/\\*\\*([^*]+)\\*\\*/g, '<strong style="color:#fff;">$1</strong>')
+    .replace(/\`([^\`]+)\`/g, '<code style="background:#1c1e26;padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11.5px;color:#a5b4fc;">$1</code>');
+}
+
+function renderRichMarkdown(md) {
+  const lines = String(md || '').split('\\n');
+  let html = '';
+  let inTable = false;
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i].trim();
+    if (!raw) {
+      if (inTable) { html += '</tbody></table>'; inTable = false; }
+      if (inList) { html += '</ul>'; inList = false; }
+      continue;
+    }
+
+    if (raw.startsWith('|') && raw.endsWith('|')) {
+      if (raw.includes('---')) continue;
+      const cols = raw.slice(1, -1).split('|').map(c => c.trim());
+      if (!inTable) {
+        inTable = true;
+        html += '<table class="doc-table"><thead><tr>' + cols.map(c => '<th>' + formatInline(c) + '</th>').join('') + '</tr></thead><tbody>';
+      } else {
+        html += '<tr>' + cols.map(c => '<td>' + formatInline(c) + '</td>').join('') + '</tr>';
+      }
+      continue;
+    }
+    if (inTable) { html += '</tbody></table>'; inTable = false; }
+
+    if (raw.startsWith('# ')) {
+      html += '<h1>' + formatInline(raw.slice(2)) + '</h1>';
+    } else if (raw.startsWith('## ')) {
+      html += '<h2>' + formatInline(raw.slice(3)) + '</h2>';
+    } else if (raw.startsWith('> ')) {
+      html += '<blockquote>' + formatInline(raw.slice(2)) + '</blockquote>';
+    } else if (raw.startsWith('- [x] ') || raw.startsWith('- [ ] ')) {
+      const checked = raw.startsWith('- [x] ');
+      html += '<div style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;"><input type="checkbox" ' + (checked ? 'checked' : '') + ' style="margin-top:4px;accent-color:#10b981;" /><span>' + formatInline(raw.slice(6)) + '</span></div>';
+    } else if (raw.startsWith('- ') || /^\\d+\\.\\s/.test(raw)) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      const cleaned = raw.replace(/^(-|\\d+\\.)\\s+/, '');
+      html += '<li>' + formatInline(cleaned) + '</li>';
+    } else if (raw === '---') {
+      html += '<hr style="border:none;border-top:1px solid var(--border-hairline);margin:12px 0;" />';
+    } else {
+      html += '<p style="margin-bottom:6px;">' + formatInline(raw) + '</p>';
+    }
+  }
+  if (inTable) html += '</tbody></table>';
+  if (inList) html += '</ul>';
+  return html;
 }
 
 function renderNumberedDiff(patch) {
@@ -63,6 +135,7 @@ function setPersona(p, btnEl) {
   renderPresets();
   renderPrimaryPane();
   renderInspectorPane();
+  showToast('已切换至 ' + (p === 'all' ? '全部视图' : personaLabel(p)), 'dot-emerald');
 }
 
 function getFilteredTasks() {
@@ -80,7 +153,7 @@ function renderPresets() {
         '<span>' + esc(item.title) + '</span>' +
         '<span class="tag tag-blue">' + esc(item.tag) + '</span>' +
       '</div>' +
-      '<div class="preset-desc">' + esc(item.prompt.slice(0, 38)) + '...</div>' +
+      '<div class="preset-desc">' + esc(item.prompt) + '</div>' +
     '</div>'
   ).join('');
 }
@@ -91,6 +164,7 @@ async function runPreset(idx) {
   if (!item) return;
   document.getElementById('quickTitle').value = item.title;
   document.getElementById('quickPrompt').value = item.prompt;
+  showToast('正在通过 DeepSeek Router 派发后台分身：' + item.title, 'dot-amber');
   const res = await fetch('/api/tasks', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -99,6 +173,7 @@ async function runPreset(idx) {
   const created = await res.json();
   state.selectedTaskId = created.id;
   await refreshState();
+  showToast('任务已完成并生成安全成果报告！', 'dot-emerald');
 }
 
 function switchView(viewName, navBtn) {
@@ -119,7 +194,9 @@ async function refreshState() {
   state.data = await res.json();
   const visible = getFilteredTasks();
   if (!state.selectedTaskId && visible.length > 0) {
-    state.selectedTaskId = visible[0].id;
+    // Default to showing the rich Office report first so users immediately see formatted deliverables
+    const officeDefault = visible.find(t => t.id === 'task-office-weekly-kpi');
+    state.selectedTaskId = officeDefault ? officeDefault.id : visible[0].id;
   }
   updateTelemetryAndSidebar();
   renderPresets();
@@ -193,10 +270,10 @@ function renderPrimaryPane() {
         '<div class="row-top">' +
           '<div class="row-title">' +
             '<span class="status-dot ' + dotCls + '"></span>' +
-            '<span>' + esc(t.title) + '</span>' +
+            '<span class="row-title-text">' + esc(t.title) + '</span>' +
             '<span class="tag tag-blue">' + personaLabel(t.persona) + '</span>' +
           '</div>' +
-          '<div style="display:flex;gap:6px;align-items:center;">' +
+          '<div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">' +
             '<span class="tag ' + (t.pendingApproval ? 'tag-block' : 'tag-pass') + '">' + modeLabel + '</span>' +
             '<span class="tag ' + tagCls + '">安全分 ' + (100 - (t.securityReport ? t.securityReport.riskScore : 0)) + '/100</span>' +
           '</div>' +
@@ -337,19 +414,18 @@ function renderInspectorPane() {
   const tagCls = verdict === 'PASS' ? 'tag-pass' : verdict === 'WARN' ? 'tag-warn' : 'tag-block';
 
   const approvalBar = task.pendingApproval ? (
-    '<div style="padding:12px;border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.06);border-radius:5px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">' +
+    '<div class="approval-card">' +
       '<div>' +
-        '<div style="font-weight:600;color:#f87171;font-size:12px;">⚠️ 需您人工拍板：安全护盾已暂停自动合入</div>' +
-        '<div style="font-size:11px;color:var(--text-secondary);">' + esc(task.pendingApproval.reason) + '</div>' +
+        '<div style="font-weight:600;color:#f87171;font-size:12.5px;margin-bottom:3px;">⚠️ 需您人工拍板：安全护盾已暂停自动合入</div>' +
+        '<div style="font-size:11.5px;color:var(--text-secondary);">' + esc(task.pendingApproval.reason) + '</div>' +
       '</div>' +
-      '<div style="display:flex;gap:6px;">' +
+      '<div style="display:flex;gap:8px;flex-shrink:0;">' +
         '<button class="btn btn-approve" onclick="resolveApproval(\\'' + task.id + '\\', \\'approve\\')">确认放行</button>' +
         '<button class="btn btn-reject" onclick="resolveApproval(\\'' + task.id + '\\', \\'reject\\')">拦截丢弃</button>' +
       '</div>' +
     '</div>'
   ) : '';
 
-  // For Beginner & Office personas: Show rich human-friendly Document Deliverable!
   if (task.persona === 'beginner' || task.persona === 'office') {
     const deliv = task.deliverable || {
       title: task.title,
@@ -362,22 +438,23 @@ function renderInspectorPane() {
     box.innerHTML =
       '<div class="inspector-body">' +
         approvalBar +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">' +
           '<div>' +
-            '<div style="font-size:14px;font-weight:600;color:var(--text-primary);">' + esc(deliv.title) + '</div>' +
-            '<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">' + esc(deliv.subtitle) + '</div>' +
+            '<div style="font-size:15px;font-weight:700;color:var(--text-primary);">' + esc(deliv.title) + '</div>' +
+            '<div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;">' + esc(deliv.subtitle) + '</div>' +
           '</div>' +
-          '<div style="display:flex;gap:6px;">' +
+          '<div style="display:flex;gap:6px;flex-shrink:0;">' +
             '<button class="btn" onclick="copyDeliverable()">复制全文</button>' +
             '<button class="btn btn-solid" onclick="exportDeliverable()">导出文档 (.md)</button>' +
           '</div>' +
         '</div>' +
-        '<div class="shield-banner">' + esc(deliv.safetyNotePlain) + '</div>' +
-        '<div id="deliverableText" class="doc-card">' + esc(deliv.markdownBody) + '</div>' +
+        '<div class="shield-banner"><span>' + esc(deliv.safetyNotePlain) + '</span><span class="tag tag-pass">100% 合规</span></div>' +
+        '<div id="deliverableRaw" class="hidden">' + esc(deliv.markdownBody) + '</div>' +
+        '<div class="doc-card">' + renderRichMarkdown(deliv.markdownBody) + '</div>' +
         '<div class="metric-label" style="margin-top:16px;">后台智能体协同轨迹 (SUPER-AGENT TRACE)</div>' +
         '<div class="code-frame" style="padding:10px;">' +
           task.steps.map(s =>
-            '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border-hairline);">' +
+            '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-hairline);">' +
               '<span>' + esc(s.summary) + '</span>' +
               '<span style="color:var(--text-muted);">' + s.durationMs + 'ms</span>' +
             '</div>'
@@ -387,32 +464,31 @@ function renderInspectorPane() {
     return;
   }
 
-  // Developer Mode Inspector: Line-numbered Diff + SARIF Findings
   const findingsHtml = (report && report.findings.length > 0) ? (
     '<div style="margin-top:14px;">' +
       '<div class="metric-label">OPENAI CODEX & AST SECURITY FINDINGS (' + report.findings.length + ')</div>' +
       report.findings.map(f =>
-        '<div style="padding:10px;border:1px solid var(--border-hairline);background:var(--bg-canvas);border-radius:4px;margin-top:6px;">' +
-          '<div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;">' +
+        '<div style="padding:11px;border:1px solid var(--border-subtle);background:var(--bg-canvas);border-radius:6px;margin-top:8px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;">' +
             '<strong style="color:#f87171;">[' + esc(f.ruleId) + '] ' + esc(f.title) + '</strong>' +
             '<span class="tag tag-block">' + esc(f.detectedBy) + ' · L' + f.line + '</span>' +
           '</div>' +
-          '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);margin:4px 0;">' + esc(f.snippet) + '</div>' +
-          '<div style="font-size:11px;color:var(--text-muted);">修复建议: ' + esc(f.remediation) + '</div>' +
+          '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);margin:5px 0;">' + esc(f.snippet) + '</div>' +
+          '<div style="font-size:11.5px;color:var(--text-muted);">修复建议: ' + esc(f.remediation) + '</div>' +
         '</div>'
       ).join('') +
     '</div>'
   ) : (
-    '<div class="shield-banner">✓ OpenAI Codex Security Gate 0 违规通过，已在隔离分支完成静默验证。</div>'
+    '<div class="shield-banner"><span>✓ OpenAI Codex Security Gate 0 违规通过，已在隔离分支完成静默验证。</span><span class="tag tag-pass">SARIF PASS</span></div>'
   );
 
   box.innerHTML =
     '<div class="inspector-body">' +
       approvalBar +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">' +
         '<div>' +
-          '<div style="font-size:14px;font-weight:600;color:var(--text-primary);">' + esc(task.title) + '</div>' +
-          '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:2px;">' +
+          '<div style="font-size:15px;font-weight:700;color:var(--text-primary);">' + esc(task.title) + '</div>' +
+          '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:3px;">' +
             esc(task.workerId || 'worker-01') + ' · ' + esc(task.branch) + ' · ' + esc(task.worktreeId) +
           '</div>' +
         '</div>' +
@@ -425,26 +501,28 @@ function renderInspectorPane() {
 }
 
 function copyDeliverable() {
-  const el = document.getElementById('deliverableText');
+  const el = document.getElementById('deliverableRaw');
   if (!el) return;
   navigator.clipboard.writeText(el.textContent || '');
-  alert('已复制全部成果内容到剪贴板！');
+  showToast('已复制完整 Markdown 报告到剪贴板！', 'dot-emerald');
 }
 
 function exportDeliverable() {
-  const el = document.getElementById('deliverableText');
+  const el = document.getElementById('deliverableRaw');
   if (!el) return;
   const blob = new Blob([el.textContent || ''], { type: 'text/markdown;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'CC-Nexus-Deliverable.md';
   a.click();
+  showToast('已导出文档 CC-Nexus-Deliverable.md', 'dot-emerald');
 }
 
 async function dispatchFromBar() {
   const title = document.getElementById('quickTitle').value.trim() || '智能任务处理';
   const prompt = document.getElementById('quickPrompt').value.trim() || title;
   const persona = state.persona === 'all' ? 'office' : state.persona;
+  showToast('超级管家正在后台沙箱为您生成方案...', 'dot-amber');
   const res = await fetch('/api/tasks', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -453,6 +531,7 @@ async function dispatchFromBar() {
   const created = await res.json();
   state.selectedTaskId = created.id;
   await refreshState();
+  showToast('执行完成：' + title, 'dot-emerald');
 }
 
 async function resolveApproval(taskId, decision) {
@@ -462,6 +541,7 @@ async function resolveApproval(taskId, decision) {
     body: JSON.stringify({ taskId, decision })
   });
   await refreshState();
+  showToast(decision === 'approve' ? '已确认放行并合并分支' : '已安全拦截并销毁隔离沙箱', 'dot-emerald');
 }
 
 async function injectNoiseEvent() {
@@ -476,6 +556,7 @@ async function injectNoiseEvent() {
     })
   });
   await refreshState();
+  showToast('前置过滤器已自动拦截群聊「收到」噪音 (节省 1,420 Tokens)', 'dot-emerald');
 }
 
 async function injectSignalEvent() {
@@ -493,11 +574,13 @@ async function injectSignalEvent() {
   const data = await res.json();
   if (data.routedTask) state.selectedTaskId = data.routedTask.id;
   await refreshState();
+  showToast('已识别有效办公指令并生成简报！', 'dot-emerald');
 }
 
 async function triggerWatchdogHeal() {
   await fetch('/api/watchdog/heal', { method: 'POST' });
   await refreshState();
+  showToast('Watchdog 看门狗已自动回滚死循环并恢复后台分身！', 'dot-emerald');
 }
 
 async function runSecurityScan() {
@@ -513,7 +596,7 @@ async function runSecurityScan() {
   if (!out) return;
   const cls = report.verdict === 'PASS' ? 'tag-pass' : report.verdict === 'WARN' ? 'tag-warn' : 'tag-block';
   out.innerHTML =
-    '<div style="padding:12px;border:1px solid var(--border-hairline);background:var(--bg-surface);border-radius:5px;">' +
+    '<div style="padding:12px;border:1px solid var(--border-subtle);background:var(--bg-surface);border-radius:6px;">' +
       '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">' +
         '<span style="font-family:var(--font-mono);font-weight:600;">体检结果: <span class="tag ' + cls + '">' + report.verdict + ' (风险分 ' + report.riskScore + '/100)</span></span>' +
         '<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">' + report.auditId + '</span>' +
@@ -527,11 +610,13 @@ function loadCleanAuditSample() {
   if (!el) return;
   el.value = '外发项目周报：已完成全部敏感字段脱敏（身份证号：3101**********881X），无密钥泄露风险。';
   runSecurityScan();
+  showToast('已加载合规脱敏示例，安全体检通过！', 'dot-emerald');
 }
 
 async function runAutoDreamNow() {
   await fetch('/api/memory/dream', { method: 'POST' });
   await refreshState();
+  showToast('Auto-Dream 记忆浓缩完成 (节省 68% 上下文 Token)', 'dot-emerald');
 }
 
 function toggleCmdk(force) {

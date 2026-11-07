@@ -203,6 +203,9 @@ export function renderStudioHtml(): string {
     </div>
   </div>
 
+  <!-- TOAST NOTIFICATION HOST -->
+  <div id="toastHost" class="toast-container"></div>
+
   <script>${STUDIO_CLIENT_JS}</script>
 </body>
 </html>`;
