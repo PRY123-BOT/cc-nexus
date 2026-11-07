@@ -1,0 +1,31 @@
+name: Dual-Engine PR Security Review (Claude x OpenAI Codex)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  codex-adversarial-audit:
+    name: OpenAI Codex & Claude Security Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun Runtime
+        uses: oven-sh/setup-bun@v2
+
+      - name: Execute Dual-Engine Diff Security Audit
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          bun run src/cli/index.ts audit --git-diff origin/${{ github.base_ref }}...HEAD --json > audit-report.json
+          cat audit-report.json

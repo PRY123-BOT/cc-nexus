@@ -1,0 +1,43 @@
+{
+  "name": "cc-nexus",
+  "version": "1.0.0",
+  "description": "Local-First Multi-Agent Workspace, Git Worktree Orchestrator & Cross-Model Security Gate for Claude Code and OpenAI Codex",
+  "keywords": [
+    "claude-code",
+    "anthropic",
+    "openai-codex",
+    "multi-agent",
+    "git-worktree",
+    "mcp",
+    "model-context-protocol",
+    "ai-coding",
+    "security-gate",
+    "developer-tools"
+  ],
+  "homepage": "https://github.com/PRY123-BOT/cc-nexus",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PRY123-BOT/cc-nexus.git"
+  },
+  "license": "MIT",
+  "author": "PRY123-BOT <1402538243@qq.com>",
+  "type": "module",
+  "bin": {
+    "cc-nexus": "./src/cli/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/server/index.ts",
+    "dev": "bun --watch run src/server/index.ts",
+    "studio": "bun run src/cli/index.ts studio",
+    "cli": "bun run src/cli/index.ts",
+    "doctor": "bun run src/cli/index.ts doctor",
+    "audit": "bun run src/cli/index.ts audit --sample",
+    "dream": "bun run src/cli/index.ts dream",
+    "test": "bun test",
+    "typecheck": "bun x tsc --noEmit"
+  },
+  "engines": {
+    "bun": ">=1.1.0",
+    "node": ">=20.0.0"
+  }
+}

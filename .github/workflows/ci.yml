@@ -1,0 +1,31 @@
+name: CC-Nexus CI & Security Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test-and-audit:
+    name: Bun Test Suite & Self-Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun Runtime
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run Environment Doctor
+        run: bun run src/cli/index.ts doctor
+
+      - name: Run Unit & Integration Tests
+        run: bun test
+
+      - name: Run Self Security Gate Audit
+        run: bun run src/cli/index.ts audit --sample
